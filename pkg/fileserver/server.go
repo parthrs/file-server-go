@@ -60,21 +60,17 @@ func NewFileService() (*FileService, error) {
 
 	p.HTTPServer.Addr = ":" + p.Port
 	p.HTTPServer.Handler = muxWithLogger
-	// p.HTTPServer.ReadTimeout = 120
 
 	return &p, nil
 }
 
 func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	fileName := strings.TrimPrefix(r.URL.Path, "/upload/")
-	log.Info().Str("fileName", fileName).Msg("Handling request for file upload")
-	//incomingBytes := r.ContentLength
-	r.ParseForm()
+	incomingBytes := r.ContentLength
 	log.Info().
-		Any("Content-length", r.ContentLength).
-		Any("FormValue", r.FormValue("file")).
-		Any("Header", r.Header).
-		Msg("")
+		Str("fileName", fileName).
+		Int("contentLength", int(incomingBytes)).
+		Msg("Handling request for file upload")
 	filePath := DefaultStoragePath + "/" + fileName // If fileObj is found this goes unused
 
 	fileObj, found := s.DB[fileName]
@@ -83,6 +79,7 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 
 	if found {
 		localFile, err = os.OpenFile(filePath+"-temp", os.O_CREATE|os.O_WRONLY, 0664)
+		filePath += "-temp"
 		fileObj.Mu.Lock()
 		defer fileObj.Mu.Unlock()
 	} else {
