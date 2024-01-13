@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -65,16 +64,16 @@ func NewFileService() (*FileService, error) {
 	return &p, nil
 }
 
+// upload processes the user file upload for a PUT request
 func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	fileName := strings.TrimPrefix(r.URL.Path, "/upload/")
-	incomingBytes := r.ContentLength
 	log.Info().
 		Str("fileName", fileName).
-		Int("contentLength", int(incomingBytes)).
-		Msg("Handling request for file upload")
-	filePath := DefaultStoragePath + "/" + fileName // If fileObj is found this goes unused
+		Int("contentLength", int(r.ContentLength)).
+		Msg("Processing upload")
+	filePath := DefaultStoragePath + "/" + fileName
 
-	if incomingBytes == 0 {
+	if r.ContentLength == 0 {
 		log.Error().Msg("Empty file being uploaded. Skipping.")
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Please upload a non-empty file."))
@@ -101,62 +100,23 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalReadBytes, totalBytesWritten := 0, 0
-	readBuffer := make([]byte, 10000000) // 10MB
-	defer r.Body.Close()
-
-	// Read data from body and keep writing to file
-	for int64(totalReadBytes) < incomingBytes {
-		readBytes, err := io.ReadFull(r.Body, readBuffer)
-		if readBytes == 0 {
-			log.Error().Err(err).Msg("Unable to read data from request body")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Server encountered an exception in reading data from request body"))
-			localFile.Close()
-			os.Remove(filePath)
-			return
-		}
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			} else if err.Error() != "unexpected EOF" {
-				log.Error().Err(err).Msg("Error reading data from request body")
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("Server encountered an exception while reading data from request body"))
-				localFile.Close()
-				os.Remove(filePath)
-				return
-			}
-		}
-		totalReadBytes += readBytes
-		log.Info().
-			Int("readBytes", readBytes).
-			Int("totalReadBytes", totalReadBytes).
-			Msg("Read bytes into memory")
-
-		writeBytes, err := localFile.Write(readBuffer)
-		if err != nil {
-			log.Error().Err(err).Msg("Unable to write data to local file")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Server encountered an exception while writing data to local file"))
-			localFile.Close()
-			os.Remove(filePath)
-			return
-		}
-		totalBytesWritten += writeBytes
-		log.Info().
-			Int("writeBytes", writeBytes).
-			Int("totalBytesWritten", totalBytesWritten).
-			Msg("Wrote bytes to file")
-		time.Sleep(time.Second * 5) // This is just to see the bytes move around
+	writtenBytes, err := io.Copy(localFile, r.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable error trying to read/write data to disk")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server encountered an exception in processing the upload"))
+		localFile.Close()
+		os.Remove(filePath)
+		return
 	}
 
-	if totalBytesWritten < int(incomingBytes) {
+	log.Info().
+		Int64("writtenBytes", writtenBytes).
+		Msg("Wrote bytes to file")
+
+	if writtenBytes != r.ContentLength {
 		log.Error().
-			Int("incomingBytes", int(incomingBytes)).
-			Int("totalReadBytes", totalReadBytes).
-			Int("totalBytesWritten", totalBytesWritten).
-			Msg("Total written bytes is less than contenlength")
+			Msg("Total written bytes is not same as contenlength")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Server could not validate all the data written to local file"))
 		localFile.Close()
