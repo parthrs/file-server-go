@@ -11,4 +11,4 @@ dockerbuild:
 
 .PHONY: kindload
 kindload:
-	kind load docker-image file-server-go:0.0.1 --name ${KIND_CLUSTER_NAME}
+	kind load docker-image file-server-go:${VERSION} --name ${KIND_CLUSTER_NAME}
