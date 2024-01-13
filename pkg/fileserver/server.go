@@ -151,7 +151,7 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	// to it)
 	// If its a new file, create a new FileObj and add DB reference
 	if found {
-		err := os.Rename(filePath+"-temp", fileObj.File.Name())
+		err := os.Rename(filePath, fileObj.File.Name())
 		s.DB[fileName].File = localFile
 		if err != nil {
 			log.Error().Err(err).Msg("Unable to rename temp file to final file")
