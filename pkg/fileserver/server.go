@@ -62,7 +62,7 @@ func NewFileService() (*FileService, error) {
 	}
 
 	mux.HandleFunc("/upload/", p.upload)
-	//mux.HandleFunc("/download", p.download) // TBD
+	mux.HandleFunc("/download/", p.download)
 
 	muxWithLogger := httpRequestLoggerWrapper(mux)
 
@@ -183,9 +183,58 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Upload successful"))
 }
 
-// func (s *FileService) download(w http.ResponseWriter, r *http.Request) {
+func (s *FileService) download(w http.ResponseWriter, r *http.Request) {
+	fileName := strings.TrimPrefix(r.URL.Path, "/download/")
+	log.Debug().
+		Str("fileName", fileName).
+		Msg("Processing download")
 
-// }
+	fileObj, found := s.DB[fileName]
+	if !found {
+		log.Debug().
+			Msg("No such file found")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("No such file"))
+		return
+	}
+
+	fi, err := os.Stat(fileObj.Path)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to validate file on disk")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server encountered an exception in validating local file object"))
+		return
+	}
+
+	w.Header().Add("Content-Length", fmt.Sprintf("%d", fi.Size()))
+
+	localFile, err := os.OpenFile(fileObj.Path, os.O_RDONLY, 0664)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to open file object on the server for reading.")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Server encountered an exception opening the file locally (%v)", err)))
+		return
+	}
+
+	log.Debug().
+		Int("fd", int(localFile.Fd())).
+		Msg("File descriptor")
+
+	bytes, err := io.Copy(w, localFile)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to read/write data from disk")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server encountered an exception in processing the download"))
+		return
+	}
+
+	if bytes != fi.Size() {
+		log.Error().Err(err).Msg("Bytes written to response don't match with size on disk")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Server encountered an exception in processing data for this request"))
+		return
+	}
+}
 
 // Start starts the fileservice
 func (s *FileService) Start() error {
