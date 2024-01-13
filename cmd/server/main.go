@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// main is the entrypoint for the fileserver
+// program to start and serve requests
 func main() {
 	fs, err := fileserver.NewFileService()
 	if err != nil {
@@ -24,7 +26,7 @@ func main() {
 		return
 	}
 
-	// Catch user interrupts
+	// Catch user interrupts (and K8s pod kill requests - SIGTERM)
 	// https://stackoverflow.com/a/72085533
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
