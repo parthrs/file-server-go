@@ -159,6 +159,7 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Server encountered an exception while comitting data to local file"))
 			localFile.Close()
 			os.Remove(filePath)
+			return
 		}
 	} else {
 		fileObj = &FileObject{
