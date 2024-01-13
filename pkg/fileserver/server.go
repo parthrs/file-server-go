@@ -150,6 +150,8 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	// file with a new reference, renaming does not change the pointer
 	// to it)
 	// If its a new file, create a new FileObj and add DB reference
+	// Note: Renaming does not change the MODIFIED timestamp of the
+	// file
 	if found {
 		err := os.Rename(filePath, fileObj.File.Name())
 		s.DB[fileName].File = localFile
