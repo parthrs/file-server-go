@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -73,6 +74,13 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 		Msg("Handling request for file upload")
 	filePath := DefaultStoragePath + "/" + fileName // If fileObj is found this goes unused
 
+	if incomingBytes == 0 {
+		log.Error().Msg("Empty file being uploaded. Skipping.")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Please upload a non-empty file."))
+		return
+	}
+
 	fileObj, found := s.DB[fileName]
 	var localFile *os.File
 	var err error
@@ -93,41 +101,64 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Currently read full file into memory
-	// Read call on the r.Body will read upto
-	// len(data)
-	data, err := io.ReadAll(r.Body)
-	log.Info().Msgf("Read %d bytes", len(data))
+	totalReadBytes, totalBytesWritten := 0, 0
+	readBuffer := make([]byte, 10000000) // 10MB
+	defer r.Body.Close()
 
-	// Empty file uploaded
-	if len(data) == 0 {
-		log.Error().Err(err).Msg("Empty file being uploaded. Skipping.")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Please upload a non-empty file."))
-		localFile.Close()
-		os.Remove(filePath)
-		return
-	}
-
-	// Err in reading data into memory
-	if err != nil {
-		log.Error().Err(err).Msg("Unable to read uploaded data")
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Server encountered an exception while reading data"))
-		localFile.Close()
-		if !found {
+	// Read data from body and keep writing to file
+	for int64(totalReadBytes) < incomingBytes {
+		readBytes, err := io.ReadFull(r.Body, readBuffer)
+		if readBytes == 0 {
+			log.Error().Err(err).Msg("Unable to read data from request body")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Server encountered an exception in reading data from request body"))
+			localFile.Close()
 			os.Remove(filePath)
+			return
 		}
-		return
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			} else if err.Error() != "unexpected EOF" {
+				log.Error().Err(err).Msg("Error reading data from request body")
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Server encountered an exception while reading data from request body"))
+				localFile.Close()
+				os.Remove(filePath)
+				return
+			}
+		}
+		totalReadBytes += readBytes
+		log.Info().
+			Int("readBytes", readBytes).
+			Int("totalReadBytes", totalReadBytes).
+			Msg("Read bytes into memory")
+
+		writeBytes, err := localFile.Write(readBuffer)
+		if err != nil {
+			log.Error().Err(err).Msg("Unable to write data to local file")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Server encountered an exception while writing data to local file"))
+			localFile.Close()
+			os.Remove(filePath)
+			return
+		}
+		totalBytesWritten += writeBytes
+		log.Info().
+			Int("writeBytes", writeBytes).
+			Int("totalBytesWritten", totalBytesWritten).
+			Msg("Wrote bytes to file")
+		time.Sleep(time.Second * 5) // This is just to see the bytes move around
 	}
 
-	// Write in memory byte to file and handle
-	// error
-	writeBytes, err := localFile.Write(data)
-	if err != nil || writeBytes != int(r.ContentLength) {
-		log.Error().Err(err).Msg("Unable to write uploaded data to file")
+	if totalBytesWritten < int(incomingBytes) {
+		log.Error().
+			Int("incomingBytes", int(incomingBytes)).
+			Int("totalReadBytes", totalReadBytes).
+			Int("totalBytesWritten", totalBytesWritten).
+			Msg("Total written bytes is less than contenlength")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Server encountered an exception while writing data to local file"))
+		w.Write([]byte("Server could not validate all the data written to local file"))
 		localFile.Close()
 		os.Remove(filePath)
 		return
@@ -135,6 +166,7 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 
 	if found {
 		err := os.Rename(filePath, fileObj.File.Name())
+		s.DB[fileName].File = localFile
 		if err != nil {
 			log.Error().Err(err).Msg("Unable to rename temp file to final file")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -149,6 +181,9 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 		}
 		s.DB[fileName] = fileObj
 	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Upload successful"))
 
 	fileObj.File.Close()
 }

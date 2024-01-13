@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"file-server-go/pkg/fileserver"
@@ -26,7 +27,7 @@ func main() {
 	// Catch user interrupts
 	// https://stackoverflow.com/a/72085533
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	for {
 		select {
