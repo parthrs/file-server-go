@@ -18,18 +18,17 @@ var (
 	ignoredPaths       = []string{}
 )
 
-// FileObject is a wrapper around a
-// pointer to a file object on disk.
-// It adds a mutex to avoid concurrent
-// writes.
+// FileObject is a unique reference to a
+// file on disk.
+// It adds a mutex to avoid concurrent writes.
 type FileObject struct {
-	File *os.File
 	Mu   sync.RWMutex
+	Path string
 }
 
 // FileDB is the in-memory DB used
 // by the file server to keep track
-// of files stored on disk
+// of file references
 type FileDB map[string]*FileObject
 
 // NewFileDB returns a new FileDB
@@ -102,21 +101,34 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	// If file exists, create a new file with "-temp" suffix
 	// once the upload is successful, rename it to the existing
 	// file. Lock the mutex on the FileObj in this case.
+	// TBD: What if two upload requests come in for a new file
+	// in close proximity? It makes sense to lock the first request?
 	if found {
-		localFile, err = os.OpenFile(filePath+"-temp", os.O_CREATE|os.O_WRONLY, 0664)
 		filePath += "-temp"
-		fileObj.Mu.Lock()
-		defer fileObj.Mu.Unlock()
 	} else {
-		localFile, err = os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0664)
+		fileObj = &FileObject{
+			Path: filePath,
+			Mu:   sync.RWMutex{},
+		}
 	}
 
+	fileObj.Mu.Lock()
+	defer fileObj.Mu.Unlock()
+
+	log.Info().
+		Str("filePath", filePath).
+		Msg("Opening file for writing")
+	localFile, err = os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to create new file object on the server.")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("Server encountered an exception creating the file locally (%v)", err)))
 		return
 	}
+
+	log.Debug().
+		Int("fd", int(localFile.Fd())).
+		Msg("File descriptor")
 
 	// io.Copy allocates a 32KB buffer by default
 	// https://cs.opensource.google/go/go/+/refs/tags/go1.21.6:src/io/io.go;l=419
@@ -153,8 +165,7 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 	// Note: Renaming does not change the MODIFIED timestamp of the
 	// file
 	if found {
-		err := os.Rename(filePath, fileObj.File.Name())
-		s.DB[fileName].File = localFile
+		err := os.Rename(filePath, DefaultStoragePath+"/"+fileName)
 		if err != nil {
 			log.Error().Err(err).Msg("Unable to rename temp file to final file")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -164,17 +175,12 @@ func (s *FileService) upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		fileObj = &FileObject{
-			File: localFile,
-			Mu:   sync.RWMutex{},
-		}
 		s.DB[fileName] = fileObj
 	}
 
+	localFile.Close()
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Upload successful"))
-
-	fileObj.File.Close()
 }
 
 // func (s *FileService) download(w http.ResponseWriter, r *http.Request) {
