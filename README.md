@@ -24,3 +24,20 @@ A small learning exercise by writing a basic file server in Go
     CONTAINER ID   NAME               CPU %     MEM USAGE / LIMIT   MEM %     NET I/O       BLOCK I/O        PIDS
     8300bf4be0ba   quizzical_panini   0.00%     1.465MiB / 64MiB    2.29%     1.09kB / 0B   266kB / 12.3kB   7
     ```
+
+- Prior to using `io.copy` (and reading the entire file in memory) would result in an OOM if the file size is > 64MB
+```
+...
+Containers:
+  file-server-instance:
+    Container ID:   containerd://bf13bd5b2e61eeae85b6c7a4f138dd1f66c525c2a78ca22cd2415bb373349c92
+    Image:          file-server-go:0.0.1
+    Image ID:       docker.io/library/import-2024-01-13@sha256:26ba3255996d8630e54fbca83d0f4b128bd12fae4039ddbd810089cd66e26507
+    Port:           37899/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 13 Jan 2024 11:56:49 -0800
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+```
