@@ -40,4 +40,16 @@ Containers:
     Last State:     Terminated
       Reason:       OOMKilled
       Exit Code:    137
+      Started:      Sat, 13 Jan 2024 11:56:34 -0800
+      Finished:     Sat, 13 Jan 2024 11:56:49 -0800
+    Ready:          True
+    Restart Count:  1
+    Limits:
+apiVersion: apps/v1
+      cpu:     1
+      memory:  64M
+    Requests:
+      cpu:        700m
+      memory:     64M
+    Environment:  <none>
 ```
