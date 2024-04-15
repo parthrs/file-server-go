@@ -63,6 +63,7 @@ func NewFileService() (*FileService, error) {
 
 	mux.HandleFunc("/upload/", p.upload)
 	mux.HandleFunc("/download/", p.download)
+	mux.HandleFunc("/list/", p.list)
 
 	muxWithLogger := httpRequestLoggerWrapper(mux)
 
@@ -70,6 +71,22 @@ func NewFileService() (*FileService, error) {
 	p.HTTPServer.Handler = muxWithLogger
 
 	return &p, nil
+}
+
+// list returns an array of strings containing
+// the names of the files currently uploaded
+func (s *FileService) list(w http.ResponseWriter, r *http.Request) {
+	log.Info().
+		Int("contentLength", int(r.ContentLength)).
+		Msg("Processing list")
+
+	fileList := []string{}
+	for k := range s.DB {
+		fileList = append(fileList, k)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(strings.Join(fileList, "\n")))
 }
 
 // upload processes the user file upload for a PUT request
