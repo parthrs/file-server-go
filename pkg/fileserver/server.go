@@ -70,6 +70,26 @@ func NewFileService() (*FileService, error) {
 	p.HTTPServer.Addr = ":" + p.Port
 	p.HTTPServer.Handler = muxWithLogger
 
+	f, err := os.Open(p.StoragePath)
+	if err != nil {
+		log.Error().Err(err).Msg("Unable to open local file storage dir. Exiting..")
+		return nil, err
+	}
+	defer f.Close()
+
+	fileInfo, err := f.Readdir(-1)
+	if err != nil && err.Error() != "EOF" {
+		log.Error().Err(err).Msg("Unable to list contents of local file storage dir. Exiting..")
+		return nil, err
+	}
+
+	for _, files := range fileInfo {
+		NewFObj := &FileObject{
+			Path: p.StoragePath + "/" + files.Name(),
+			Mu:   sync.RWMutex{},
+		}
+		p.DB[files.Name()] = NewFObj
+	}
 	return &p, nil
 }
 
