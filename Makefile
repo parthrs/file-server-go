@@ -1,5 +1,5 @@
 KIND_CLUSTER_NAME=playground
-VERSION=0.0.4
+VERSION=0.0.5
 
 .PHONY: all
 all: dockerbuild kindload

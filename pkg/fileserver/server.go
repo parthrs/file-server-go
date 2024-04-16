@@ -105,8 +105,8 @@ func (s *FileService) list(w http.ResponseWriter, r *http.Request) {
 		fileList = append(fileList, k)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strings.Join(fileList, "\n")))
+	//w.WriteHeader(http.StatusOK)
+	w.Write([]byte(strings.Join(fileList, "\n") + "\n"))
 }
 
 // upload processes the user file upload for a PUT request
