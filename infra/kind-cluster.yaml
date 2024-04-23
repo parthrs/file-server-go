@@ -5,12 +5,12 @@ nodes:
   - role: control-plane
     extraPortMappings:
       - containerPort: 30001
-        hostPort: 37899
+        hostPort: 5174
         protocol: TCP
   - role: worker
     extraPortMappings:
-      - containerPort: 30001
-        hostPort: 37898
+      - containerPort: 30001 # Same as nodeport, but since node is actually a docker container
+        hostPort: 5173
         protocol: TCP
     extraMounts:
         - hostPath: /Users/parth/Dev/k8s/storage

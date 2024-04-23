@@ -51,8 +51,8 @@ spec:
     component: frontend-instance
   ports:
   - name: http
-    port: 37898
-    targetPort: 37898
+    port: 80
+    targetPort: 8080
     nodePort: 30001
   type: NodePort
 ---
@@ -69,7 +69,7 @@ spec:
     component: bkend-instance
   ports:
   - protocol: TCP
-    port: 80
+    port: 37899
     targetPort: 37899
 ---
 apiVersion: apps/v1
@@ -144,7 +144,7 @@ spec:
       - image: file-server-go-frontend:0.0.1
         name: file-server-frontend-instance
         ports:
-          - containerPort: 37898
+          - containerPort: 8080
         resources:
           requests:
             cpu: 700m
