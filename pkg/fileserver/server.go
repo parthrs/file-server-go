@@ -159,13 +159,8 @@ func (s *FileService) list(w http.ResponseWriter, r *http.Request) {
 		Int("contentLength", int(r.ContentLength)).
 		Msg("Processing list")
 
-	fileList := []string{}
-	for k := range s.DB {
-		fileList = append(fileList, k)
-	}
-
 	//w.WriteHeader(http.StatusOK)
-	w.Write([]byte(strings.Join(fileList, "\n") + "\n"))
+	w.Write([]byte(strings.Join(s.DB.GetFileList(), "\n")))
 }
 
 // upload processes the user file upload for a PUT request
