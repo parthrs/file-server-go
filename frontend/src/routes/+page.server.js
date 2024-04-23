@@ -1,6 +1,6 @@
 export const load = async () => {
   console.log("Fetching list..")
-  const response = await fetch(`http://localhost:37999/list/`);
+  const response = await fetch(`http://bkend-svc.default.svc.cluster.local:37899/list/`);
   const responseText = await response.text();
 
   console.log("Returning data..")
@@ -13,7 +13,7 @@ export const actions = {
   default: async ({ request }) => {
     const formData = Object.fromEntries(await request.formData());
     console.log('File:', formData)
-    const upload = await fetch(`http://localhost:37999/upload/${formData.fileToUpload.name}`,
+    const upload = await fetch(`http://bkend-svc.default.svc.cluster.local:37899/upload/${formData.fileToUpload.name}`,
     {
       method: 'POST',
       body: formData.fileToUpload,

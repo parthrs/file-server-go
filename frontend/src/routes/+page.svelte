@@ -12,9 +12,9 @@
       <Hoverable let:hovering={active}>
         <div class:active>
           {#if active}
-          <li><a href="http://localhost:37999/download/{file}"><b>{file}</b></a></li>
+          <li><a href="http://bkend-svc.default.svc.cluster.local:37899/download/{file}"><b>{file}</b></a></li>
           {:else}
-          <li><a href="http://localhost:37999/download/{file}">{file}</a></li>
+          <li><a href="http://bkend-svc.default.svc.cluster.local:37899/download/{file}">{file}</a></li>
           {/if}
         </div>
       </Hoverable>
