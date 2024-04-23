@@ -2,13 +2,21 @@ KIND_CLUSTER_NAME=playground
 VERSION=0.0.5
 VERSION_FRONTEND=0.0.1
 
+# Newer ver of docker doesn't print
+# output of each step/layer
+BACKEND_BUILDOUTPUT=
+FRONTEND_BUILDOUTPUT=DOCKER_BUILDKIT=0
+# Enable/disable using cache
+BACKEND_BUILDCACHE=
+FRONTEND_BUILDCACHE=--no-cache
+
 .PHONY: all
 all: backend kindload frontend kindload-frontend
 - FORCE:
 
 .PHONY: backend
 backend:
-	docker build -t file-server-go:${VERSION} -f Dockerfile .
+	${BACKEND_BUILDOUTPUT} docker build ${BACKEND_BUILDCACHE} -t file-server-go:${VERSION} -f Dockerfile .
 
 .PHONY: kindload
 kindload:
@@ -16,7 +24,7 @@ kindload:
 
 .PHONY: frontend
 frontend:
-	docker build -t file-server-go-frontend:${VERSION_FRONTEND} -f Dockerfile-frontend .
+	${FRONTEND_BUILDOUTPUT} docker build ${FRONTEND_BUILDCACHE} -t file-server-go-frontend:${VERSION_FRONTEND} -f Dockerfile-frontend .
 
 .PHONY: kindload-frontend
 kindload-frontend:
