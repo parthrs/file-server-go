@@ -1,5 +1,6 @@
 #### Overview
 A small learning exercise by writing a basic file server in Go
+UPDATE: Basic frontend using sveltekit was added latest (check the [frontend](#frontend) section)
 
 #### Build
 `docker build -t file-server-go .`
@@ -53,3 +54,17 @@ apiVersion: apps/v1
       memory:     64M
     Environment:  <none>
 ```
+
+#### Frontend
+
+###### Homepage GUI
+![alt text](Homepage.png "Homepage GUI")
+
+###### List files flow
+![alt text](diagram-list.png "List all files")
+
+###### Download flow
+![alt text](diagram-download.png "Download file")
+
+###### Upload flow
+![alt text](diagram-upload.png "Upload file")
