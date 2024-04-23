@@ -1,9 +1,9 @@
 #### Overview
 A small learning exercise by writing a basic file server in Go
 
-UPDATE: Basic frontend using sveltekit was added latest (check the [frontend](#frontend) section)
+UPDATE: Basic frontend using sveltekit was added recently (check the [frontend](#frontend) section)
 
-#### Build
+#### Build backend only
 `docker build -t file-server-go .`
 
 #### Run
@@ -56,9 +56,19 @@ apiVersion: apps/v1
     Environment:  <none>
 ```
 
-#### Frontend
+#### Build Frontend+Backend and deploy on local K8s! (Kind cluster)
 
-###### Homepage GUI
+##### Install kind
+`brew install kind`
+
+##### Create a cluster
+`kind create cluster --name playground --config infra/kind-cluster.yaml`
+
+##### Create deployment
+`k create -f infra/file-server.yaml`
+
+##### Voila!
+Open your browser and visit `http://localhost:5173/`
 ![alt text](Homepage.png "Homepage GUI")
 
 ###### List files flow
