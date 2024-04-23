@@ -308,10 +308,6 @@ func (s *FileService) download(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Debug().
-		Int("fd", int(localFile.Fd())).
-		Msg("File descriptor")
-
 	bytes, err := io.Copy(w, localFile)
 	if err != nil {
 		log.Error().Err(err).Msg("Unable to read/write data from disk")
