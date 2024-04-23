@@ -1,0 +1,154 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: file-server-go-files
+spec:
+  claimRef:
+    name: file-server-go-files-claim
+    namespace: default
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /files
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - playground-worker
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-server-go-files-claim
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  labels:
+    app: file-server
+    component: svc-frontend
+spec:
+  selector:
+    app: file-server
+    component: frontend-instance
+  ports:
+  - name: http
+    port: 37898
+    targetPort: 37898
+    nodePort: 30001
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bkend-svc
+  labels:
+    app: file-server
+    component: svc-bkend
+spec:
+  selector:
+    app: file-server
+    component: bkend-instance
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 37899
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bkend-deploy
+  labels:
+    app: file-server
+    component: deploy-bkend
+  namespace: default
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-server
+      component: bkend-instance
+  template:
+    metadata:
+      labels:
+        app: file-server
+        component: bkend-instance
+    spec:
+      volumes:
+      - name: files
+        persistentVolumeClaim:
+          claimName: file-server-go-files-claim
+      containers:
+      - image: file-server-go:0.0.5
+        name: file-server-bkend-instance
+        ports:
+          - containerPort: 37899
+        resources:
+          requests:
+            cpu: 700m
+            memory: "64M"
+          limits:
+            cpu: "1"
+            memory: "256M"
+        volumeMounts:
+        - name: files
+          mountPath: /app/files
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deploy
+  labels:
+    app: file-server
+    component: deploy-frontend
+  namespace: default
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-server
+      component: frontend-instance
+  template:
+    metadata:
+      labels:
+        app: file-server
+        component: frontend-instance
+    spec:
+      containers:
+      - image: file-server-go-frontend:0.0.1
+        name: file-server-frontend-instance
+        ports:
+          - containerPort: 37898
+        resources:
+          requests:
+            cpu: 700m
+            memory: "64M"
+          limits:
+            cpu: "1"
+            memory: "256M"
