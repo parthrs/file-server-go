@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/rs/zerolog/log"
 )
@@ -34,6 +36,63 @@ type FileDB map[string]*FileObject
 // NewFileDB returns a new FileDB
 func NewFileDB() FileDB {
 	return FileDB{}
+}
+
+// GetFileList returns a sorted slice
+// of filenames
+// inspiration: https://stackoverflow.com/a/35087122/768020
+func (f *FileDB) GetFileList() (fileList []string) {
+	// Listify all keys, we need this to pass to sort
+	for name := range *f {
+		fileList = append(fileList, name)
+	}
+
+	// Call sort with custom sorting func
+	sort.Slice(fileList, func(i, j int) bool {
+		// Get []rune version of both words
+		iRunes := []rune(fileList[i])
+		jRunes := []rune(fileList[j])
+
+		// We iterate only till the shortest word
+		shortest := len(iRunes)
+		if shortest > len(jRunes) {
+			shortest = len(jRunes)
+		}
+
+		// Ascending sort comparing each alphabetical rune
+		// Compare each character and return at the first
+		// inequality, else, continue to next charac
+		for r := 0; r < shortest; r++ {
+			lowerRunei := unicode.ToLower(iRunes[r])
+			lowerRunej := unicode.ToLower(jRunes[r])
+
+			// Ensure the characs are not he same
+			// Remove case out of the equation
+			if lowerRunei != lowerRunej {
+				// All upper case characs come before all lower cases
+				// For e.g.
+				// 'Z' -> 90
+				// 'a' -> 97
+				// But 'a' should come lower in order than Z
+				return lowerRunei < lowerRunej
+			}
+
+			// If lower case charac is same, compare original version
+			// i.e. one could be lower and one upper
+			// here upper case will show up first in order after
+			// sort
+			// The comparison is flipped, because 'a' should come before
+			// 'A' in ascending sort (but the runes for upper case come earlier)
+			if iRunes[r] != jRunes[r] { // If condition needed to avoid return if both characs are exactly same
+				return iRunes[r] > jRunes[r]
+			}
+		}
+
+		// Reaching till here means all characs were same
+		return len(iRunes) < len(jRunes)
+	})
+
+	return
 }
 
 // FileService is a fileserver that can handle
