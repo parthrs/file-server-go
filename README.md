@@ -1,15 +1,15 @@
-#### Overview
+### Overview
 A small learning exercise by writing a basic file server in Go
 
-UPDATE: Basic frontend using sveltekit was added recently (check the [frontend](#frontend) section)
+**UPDATE**: Basic frontend using sveltekit was added recently (check the [frontend](#frontend) section)
 
 #### Build backend only
 `docker build -t file-server-go .`
 
-#### Run
+#### Run backend only
 `docker run --memory="64m" --memory-swap="100m" -p 37899:37899 file-server-go`
 
-##### Observations:
+##### Observations around memory:
 - Running the `free -h` command from within the container will show incorrect results (see [this](https://stackoverflow.com/a/72185762/768020) answer)
     
     For instance, with the memory flag set to `64M` and the swap flag set to `100M` (effective swap is `100 - 64` = `36M`);
@@ -56,26 +56,26 @@ apiVersion: apps/v1
     Environment:  <none>
 ```
 
-#### Build Frontend+Backend and deploy on local K8s! (Kind cluster)
+### Build Frontend+Backend and deploy on local K8s! (Kind cluster)
 
-##### Install kind
+#### Install kind
 `brew install kind`
 
-##### Create a cluster
+#### Create a cluster
 `kind create cluster --name playground --config infra/kind-cluster.yaml`
 
-##### Create deployment
+#### Create deployment
 `k create -f infra/file-server.yaml`
 
-##### Voila!
+#### Voila!
 Open your browser and visit `http://localhost:5173/`
 ![alt text](Homepage.png "Homepage GUI")
 
-###### List files flow
+##### List files flow
 ![alt text](diagram-list.png "List all files")
 
-###### Download flow
+##### Download flow
 ![alt text](diagram-download.png "Download file")
 
-###### Upload flow
+##### Upload flow
 ![alt text](diagram-upload.png "Upload file")
