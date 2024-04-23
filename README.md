@@ -1,5 +1,6 @@
 #### Overview
 A small learning exercise by writing a basic file server in Go
+
 UPDATE: Basic frontend using sveltekit was added latest (check the [frontend](#frontend) section)
 
 #### Build
