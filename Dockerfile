@@ -22,4 +22,6 @@ WORKDIR /app
 # Copy binary (only) to new image
 COPY --from=builder /app/server /app/bin/server
 
+EXPOSE 37899
+
 ENTRYPOINT [ "/app/bin/server" ]

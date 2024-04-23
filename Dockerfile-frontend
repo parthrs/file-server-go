@@ -6,7 +6,10 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-COPY frontend/* .
+COPY frontend ./
 RUN npm run build
 
-CMD ["npm", "start"]
+EXPOSE 8080
+ENV PORT=8080
+
+ENTRYPOINT ["node", "build"]
