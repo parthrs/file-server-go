@@ -298,6 +298,7 @@ func (s *FileService) download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Length", fmt.Sprintf("%d", fi.Size()))
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
 
 	localFile, err := os.OpenFile(fileObj.Path, os.O_RDONLY, 0664)
 	if err != nil {
