@@ -71,6 +71,8 @@ spec:
   - protocol: TCP
     port: 37899
     targetPort: 37899
+    nodePort: 30002
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
