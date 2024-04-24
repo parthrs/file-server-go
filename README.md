@@ -73,6 +73,9 @@ apiVersion: apps/v1
 #### Teardown cluster
 `kind delete cluster --name playground`
 
+**Notes:**
+- Each time you delete the cluster, run `make kindload-<component>` again. Because the images on the cluster don't persist
+
 #### Voila!
 Open your browser and visit `http://localhost:5173/`
 ![alt text](Homepage.png "Homepage GUI")
