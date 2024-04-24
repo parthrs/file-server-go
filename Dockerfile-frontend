@@ -11,5 +11,6 @@ RUN npm run build
 
 EXPOSE 8080
 ENV PORT=8080
+ENV ORIGIN=http://localhost:5173
 
 ENTRYPOINT ["node", "build"]
