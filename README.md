@@ -67,6 +67,12 @@ apiVersion: apps/v1
 #### Create deployment
 `k create -f infra/file-server.yaml`
 
+#### Delete deployment
+`k delete -f infra/file-server.yaml`
+
+#### Teardown cluster
+`kind delete cluster --name playground`
+
 #### Voila!
 Open your browser and visit `http://localhost:5173/`
 ![alt text](Homepage.png "Homepage GUI")
