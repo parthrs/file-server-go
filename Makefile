@@ -11,15 +11,15 @@ BACKEND_BUILDCACHE=
 FRONTEND_BUILDCACHE=--no-cache
 
 .PHONY: all
-all: backend kindload frontend kindload-frontend
+all: backend kindload-backend frontend kindload-frontend
 - FORCE:
 
 .PHONY: backend
 backend:
 	${BACKEND_BUILDOUTPUT} docker build ${BACKEND_BUILDCACHE} -t file-server-go:${VERSION} -f Dockerfile .
 
-.PHONY: kindload
-kindload:
+.PHONY: kindload-backend
+kindload-backend:
 	kind load docker-image file-server-go:${VERSION} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: frontend
